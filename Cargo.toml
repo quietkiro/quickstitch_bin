@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "quickstitch_cli",
+  "quickstitch_gui"
+]
+resolver = "2"

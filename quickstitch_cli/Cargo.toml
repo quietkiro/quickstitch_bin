@@ -1,0 +1,9 @@
+[package]
+name = "quickstitch_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quickstitch = { git = "https://github.com/quietkiro/quickstitch.git"}
+clap = { version = "4.5.21", features = ["derive", "wrap_help"] }
+anyhow = "1.0"

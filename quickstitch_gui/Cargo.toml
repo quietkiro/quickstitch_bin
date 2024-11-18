@@ -1,0 +1,8 @@
+[package]
+name = "quickstitch_gui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quickstitch = { git = "https://github.com/quietkiro/quickstitch.git"}
+iced = "0.13.1"
