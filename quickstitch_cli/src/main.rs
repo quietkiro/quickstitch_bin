@@ -2,16 +2,32 @@ pub mod _cli;
 
 use anyhow::Result;
 use clap::{value_parser, Args, Parser, ValueEnum};
-use quickstitch::{ImageOutputFormat, Loaded, Sort, Stitcher};
+use quickstitch as qs;
+use quickstitch::{Loaded, Stitcher};
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum)]
 enum ImageFormat {
     Png,
     Webp,
     Jpg,
     Jpeg,
 }
+#[derive(Debug, Clone, ValueEnum)]
+enum Sort {
+    Natural,
+    Logical,
+}
+#[derive(Debug, Clone, Args)]
+#[group(required = true, multiple = false)]
+struct Input {
+    /// The images to stitch.
+    images: Option<Vec<PathBuf>>,
+    /// A directory of images to stitch.
+    #[clap(long, short, alias = "dir")]
+    dir: Option<PathBuf>,
+}
+
 /// Quickly stitch raws.
 ///
 /// A list of images can provided as input, or the `--dir` flag can be used
@@ -74,16 +90,6 @@ struct Cli {
     quality: u8,
 }
 
-#[derive(Debug, Clone, Args)]
-#[group(required = true, multiple = false)]
-struct Input {
-    /// The images to stitch.
-    images: Option<Vec<PathBuf>>,
-    /// A directory of images to stitch.
-    #[clap(long, short, alias = "dir")]
-    dir: Option<PathBuf>,
-}
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -93,7 +99,15 @@ fn main() -> Result<()> {
             let paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
             stitcher.load(&paths, None, true)?
         }
-        (None, Some(dir)) => stitcher.load_dir(&dir, None, true, cli.sort.into())?,
+        (None, Some(dir)) => stitcher.load_dir(
+            &dir,
+            None,
+            true,
+            match cli.sort {
+                Sort::Natural => qs::Sort::Natural,
+                Sort::Logical => qs::Sort::Logical,
+            },
+        )?,
         _ => unimplemented!("arg group rules ensure only one of the two is provided"),
     };
     let stitched = loaded.stitch(cli.height, cli.scan_interval, cli.sensitivity);
@@ -103,10 +117,10 @@ fn main() -> Result<()> {
     let _ = stitched.export(
         &cli.output,
         match cli.format {
-            ImageFormat::Png => ImageOutputFormat::Png,
-            ImageFormat::Webp => ImageOutputFormat::Webp,
-            ImageFormat::Jpg => ImageOutputFormat::Jpg(cli.quality),
-            ImageFormat::Jpeg => ImageOutputFormat::Jpeg(cli.quality),
+            ImageFormat::Png => qs::ImageOutputFormat::Png,
+            ImageFormat::Webp => qs::ImageOutputFormat::Webp,
+            ImageFormat::Jpg => qs::ImageOutputFormat::Jpg(cli.quality),
+            ImageFormat::Jpeg => qs::ImageOutputFormat::Jpeg(cli.quality),
         },
     );
 
