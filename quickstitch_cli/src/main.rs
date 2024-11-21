@@ -27,16 +27,33 @@ impl ImageFormat {
 
 #[derive(Debug, Clone, ValueEnum)]
 enum Sort {
+    Default,
+    #[clap(alias = "n")]
     Natural,
+    #[clap(alias = "l")]
     Logical,
 }
 
 impl From<Sort> for qs::Sort {
     fn from(value: Sort) -> Self {
         match value {
+            Sort::Default => qs::Sort::Natural,
             Sort::Natural => qs::Sort::Natural,
             Sort::Logical => qs::Sort::Logical,
         }
+    }
+}
+
+/// Sort the provided paths according to the specified sorting method.
+fn sort_paths(v: &mut Vec<&Path>, s: Sort) {
+    match s {
+        Sort::Natural => {
+            v.sort_by(|&a, &b| natord::compare(&a.display().to_string(), &b.display().to_string()));
+        }
+        Sort::Logical => {
+            v.sort();
+        }
+        Sort::Default => {}
     }
 }
 
@@ -46,7 +63,7 @@ struct Input {
     /// The images to stitch.
     images: Option<Vec<PathBuf>>,
     /// A directory of images to stitch.
-    #[clap(long, short, alias = "dir")]
+    #[arg(long, short, alias = "dir")]
     dir: Option<PathBuf>,
 }
 
@@ -57,19 +74,23 @@ struct Input {
 #[derive(Debug, Clone, Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    #[clap(flatten)]
+    #[command(flatten)]
     input: Input,
 
     /// The output directory to place the stitched images in.
     #[clap(long, short, default_value = "./stitched")]
     output: PathBuf,
 
-    /// The sorting method used to sort the images before stitching (only works with `--dir`).
+    /// The sorting method used to sort the images before stitching.
     ///
     /// Given the images ["9.jpeg", "10.jpeg", "8.jpeg", "11.jpeg"]:
     ///   - Logical: ["10.jpeg", "11.jpeg", 8.jpeg", "9.jpeg"]
     ///   - Natural: ["8.jpeg", "9.jpeg", "10.jpeg", "11.jpeg"]
-    #[clap(long, short, default_value_t = Sort::Natural, verbatim_doc_comment)]
+    ///
+    /// The behavior of "default" depends on the input. If `--dir` was used, then it will be
+    /// equivalent to "natural". If a list of images was provided, then the input will not be
+    /// sorted at all.
+    #[clap(long, short, default_value_t = Sort::Default)]
     #[arg(value_enum)]
     sort: Sort,
 
@@ -83,7 +104,7 @@ struct Cli {
     /// The interval at which lines of pixels are scanned. For example,
     /// a value of 5 means every 5th horizontal line of pixels will be
     /// analyzed.
-    #[clap(long, short('i'), default_value_t = 5)]
+    #[clap(long, short('i'), default_value_t = 5, value_name = "INTERVAL")]
     scan_interval: usize,
 
     /// The threshold value between 0 and 255 for determining when a line of
@@ -91,7 +112,7 @@ struct Cli {
     /// to be used as a splitpoint regardless of the line's pixels' values,
     /// while 255 would only allow the line to be used as a splitpoint if
     /// all the pixels in the line have the same value.
-    #[clap(long, short('t'), default_value_t = 220)]
+    #[clap(long, short('t'), default_value_t = 220, value_name = "THRESHOLD")]
     #[arg(value_parser(value_parser!(u8).range(0..=255)))]
     sensitivity: u8,
 
@@ -118,7 +139,8 @@ fn main() -> Result<()> {
     let stitcher = Stitcher::new();
     let loaded = match (cli.input.images, cli.input.dir) {
         (Some(images), None) => {
-            let paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
+            let mut paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
+            sort_paths(&mut paths, cli.sort);
             stitcher.load(&paths, None, true)?
         }
         (None, Some(dir)) => stitcher.load_dir(&dir, None, true, cli.sort.into())?,
