@@ -47,7 +47,7 @@ struct Cli {
     /// Given the images ["9.jpeg", "10.jpeg", "8.jpeg", "11.jpeg"]:
     ///   - Logical: ["10.jpeg", "11.jpeg", 8.jpeg", "9.jpeg"]
     ///   - Natural: ["8.jpeg", "9.jpeg", "10.jpeg", "11.jpeg"]
-    #[clap(long, short, default_value_t = Sort::Natural, verbatim_doc_comment)]
+    #[clap(long, default_value_t = Sort::Natural, verbatim_doc_comment)]
     #[arg(value_enum)]
     sort: Sort,
 
@@ -55,13 +55,13 @@ struct Cli {
     ///
     /// Stitched images will aim to be as tall as this parameter,
     /// but they may be shorter if visual elements are in the way.
-    #[clap(long, short, default_value_t = 5000)]
+    #[clap(long, default_value_t = 5000)]
     height: usize,
 
     /// The interval at which lines of pixels are scanned. For example,
     /// a value of 5 means every 5th horizontal line of pixels will be
     /// analyzed.
-    #[clap(long, short, default_value_t = 5)]
+    #[clap(long, default_value_t = 5)]
     scan_interval: usize,
 
     /// The threshold value between 0 and 255 for determining when a line of
@@ -88,6 +88,10 @@ struct Cli {
     #[clap(long, short, default_value_t = 100)]
     #[arg(value_parser(value_parser!(u8).range(1..=100)))]
     quality: u8,
+
+    /// The fixed width of the final stitched images, in pixels.
+    #[clap(long, short)]
+    width: Option<u32>,
 }
 
 fn main() -> Result<()> {
@@ -97,11 +101,11 @@ fn main() -> Result<()> {
     let loaded: Stitcher<Loaded> = match (cli.input.images, cli.input.dir) {
         (Some(images), None) => {
             let paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
-            stitcher.load(&paths, None, true)?
+            stitcher.load(&paths, cli.width, true)?
         }
         (None, Some(dir)) => stitcher.load_dir(
             &dir,
-            None,
+            cli.width,
             true,
             match cli.sort {
                 Sort::Natural => qs::Sort::Natural,
