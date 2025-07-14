@@ -5,6 +5,7 @@ use clap::{value_parser, Args, Parser, ValueEnum};
 use quickstitch as qs;
 use quickstitch::{Loaded, Stitcher};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 #[derive(Debug, Clone, ValueEnum)]
 enum ImageFormat {
@@ -51,12 +52,16 @@ struct Cli {
     #[arg(value_enum)]
     sort: Sort,
 
-    /// The target height for stitched images.
+    /// The max height for stitched images.
     ///
     /// Stitched images will aim to be as tall as this parameter,
     /// but they may be shorter if visual elements are in the way.
-    #[clap(long, default_value_t = 5000)]
-    height: usize,
+    #[clap(long, visible_alias = "max", default_value_t = 5000)]
+    max_height: usize,
+
+    /// The minimum height for stitched images.
+    #[clap(long, visible_alias = "min", default_value_t = 0)]
+    min_height: usize,
 
     /// The interval at which lines of pixels are scanned. For example,
     /// a value of 5 means every 5th horizontal line of pixels will be
@@ -92,12 +97,21 @@ struct Cli {
     /// The fixed width of the final stitched images, in pixels.
     #[clap(long, short)]
     width: Option<u32>,
+
+    /// Enable debug mode.
+    ///
+    /// Using the stitcher in debug mode will result in red and light blue lines
+    /// in the resulting stitched images, with red lines denoting selected cut
+    /// points and light blue lines denoting potential cut points that were skipped.
+    #[clap(long, default_value_t = false)]
+    debug: bool,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let stitcher = Stitcher::new();
+    let now = Instant::now();
     let loaded: Stitcher<Loaded> = match (cli.input.images, cli.input.dir) {
         (Some(images), None) => {
             let paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
@@ -114,8 +128,16 @@ fn main() -> Result<()> {
         )?,
         _ => unimplemented!("arg group rules ensure only one of the two is provided"),
     };
-    let stitched = loaded.stitch(cli.height, cli.scan_interval, cli.sensitivity);
-
+    println!("Images loaded in {:?}", now.elapsed());
+    let now = Instant::now();
+    let stitched = loaded.stitch(
+        cli.max_height,
+        cli.min_height,
+        cli.scan_interval,
+        cli.sensitivity,
+    );
+    println!("Splitpoints found in {:?}", now.elapsed());
+    let now = Instant::now();
     // TODO: handle errors here someday
     std::fs::create_dir_all(&cli.output)?;
     let _ = stitched.export(
@@ -126,7 +148,9 @@ fn main() -> Result<()> {
             ImageFormat::Jpg => qs::ImageOutputFormat::Jpg(cli.quality),
             ImageFormat::Jpeg => qs::ImageOutputFormat::Jpeg(cli.quality),
         },
+        cli.debug,
     );
+    println!("Images exported in {:?}", now.elapsed());
 
     Ok(())
 }

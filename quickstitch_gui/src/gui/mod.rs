@@ -68,9 +68,9 @@ impl Quickstitch {
             ]
             .spacing(10),
             match self.current_screen {
-                Screen::Simple => SimpleScreen.view(),
-                Screen::Advanced => text!("test").into(),
-                Screen::Config => text!("test").into(),
+                Screen::Simple => text!("test"),
+                Screen::Advanced => text!("test"),
+                Screen::Config => text!("test"),
             }
         ]
         .padding(20)
