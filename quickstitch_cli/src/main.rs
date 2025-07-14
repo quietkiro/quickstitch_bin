@@ -140,7 +140,6 @@ fn main() {
             exit(1);
         }
     };
-    println!("Images loaded in {:?}", now.elapsed());
     let now = Instant::now();
     let stitched = loaded.stitch(
         cli.max_height,
@@ -148,7 +147,7 @@ fn main() {
         cli.scan_interval,
         cli.sensitivity,
     );
-    println!("Splitpoints found in {:?}", now.elapsed());
+    info!("Splitpoints found in {:?}", now.elapsed());
     let now = Instant::now();
 
     match std::fs::create_dir_all(&cli.output) {
