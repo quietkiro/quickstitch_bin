@@ -1,10 +1,11 @@
 pub mod _cli;
 
-use anyhow::Result;
 use clap::{value_parser, Args, Parser, ValueEnum};
+use log::{error, info};
 use quickstitch as qs;
-use quickstitch::{Loaded, Stitcher};
+use quickstitch::Stitcher;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use std::time::Instant;
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -107,15 +108,16 @@ struct Cli {
     debug: bool,
 }
 
-fn main() -> Result<()> {
+fn main() {
+    env_logger::init();
     let cli = Cli::parse();
 
     let stitcher = Stitcher::new();
     let now = Instant::now();
-    let loaded: Stitcher<Loaded> = match (cli.input.images, cli.input.dir) {
+    let loaded = match (cli.input.images, cli.input.dir) {
         (Some(images), None) => {
             let paths: Vec<&Path> = images.iter().map(PathBuf::as_path).collect();
-            stitcher.load(&paths, cli.width, true)?
+            stitcher.load(&paths, cli.width, true)
         }
         (None, Some(dir)) => stitcher.load_dir(
             &dir,
@@ -125,8 +127,18 @@ fn main() -> Result<()> {
                 Sort::Natural => qs::Sort::Natural,
                 Sort::Logical => qs::Sort::Logical,
             },
-        )?,
+        ),
         _ => unimplemented!("arg group rules ensure only one of the two is provided"),
+    };
+    let loaded = match loaded {
+        Ok(stitcher) => {
+            info!("Images loaded successfully in {:?}", now.elapsed());
+            stitcher
+        }
+        Err(e) => {
+            error!("Unable to load images: {e}");
+            exit(1);
+        }
     };
     println!("Images loaded in {:?}", now.elapsed());
     let now = Instant::now();
@@ -138,9 +150,15 @@ fn main() -> Result<()> {
     );
     println!("Splitpoints found in {:?}", now.elapsed());
     let now = Instant::now();
-    // TODO: handle errors here someday
-    std::fs::create_dir_all(&cli.output)?;
-    let _ = stitched.export(
+
+    match std::fs::create_dir_all(&cli.output) {
+        Ok(_) => {}
+        Err(e) => {
+            error!("Unable to create output file directory: {e}");
+            exit(1);
+        }
+    }
+    let errs = stitched.export(
         &cli.output,
         match cli.format {
             ImageFormat::Png => qs::ImageOutputFormat::Png,
@@ -150,7 +168,13 @@ fn main() -> Result<()> {
         },
         cli.debug,
     );
-    println!("Images exported in {:?}", now.elapsed());
-
-    Ok(())
+    match errs {
+        Ok(_) => info!("Images exported in {:?}", now.elapsed()),
+        Err(e) => {
+            for err in e {
+                error!("Unable to export image: {err}");
+            }
+            exit(1);
+        }
+    }
 }
