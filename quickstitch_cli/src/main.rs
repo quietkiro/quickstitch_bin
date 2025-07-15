@@ -137,7 +137,7 @@ fn main() {
         }
         Err(e) => {
             error!("Unable to load images: {e}");
-            exit(1);
+            exit(exitcode::IOERR);
         }
     };
     let now = Instant::now();
@@ -154,7 +154,7 @@ fn main() {
         Ok(_) => {}
         Err(e) => {
             error!("Unable to create output file directory: {e}");
-            exit(1);
+            exit(exitcode::IOERR);
         }
     }
     let errs = stitched.export(
@@ -173,7 +173,7 @@ fn main() {
             for err in e {
                 error!("Unable to export image: {err}");
             }
-            exit(1);
+            exit(exitcode::IOERR);
         }
     }
 }
