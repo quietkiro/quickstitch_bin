@@ -1,84 +1,54 @@
 use iced::{
-    widget::{button, column, row, text},
     Element, Theme,
+    widget::{column, horizontal_rule, row, text},
 };
-mod simple_screen;
-use simple_screen::SimpleScreen;
+use icons::{folder_icon, image_icon, settings_icon};
+use io_section::{IOMessage, IOSection};
+
+pub mod icons;
+mod io_section;
 
 #[derive(Default)]
 pub struct Quickstitch {
+    io_section: IOSection,
     theme: Theme,
-    current_screen: Screen,
-    // config: Config,
-}
-
-// #[derive(Default)]
-// struct Config {
-//     current_screen: Screen,
-// }
-
-#[derive(Default, PartialEq, Debug, Clone)]
-pub enum Screen {
-    #[default]
-    Simple,
-    Advanced,
-    Config,
-}
-
-impl Screen {
-    fn get_label(&self) -> String {
-        match self {
-            Self::Simple => "Simple".to_string(),
-            Self::Advanced => "Advanced".to_string(),
-            Self::Config => "Configuration".to_string(),
-        }
-    }
-    // fn get_screen(&self) -> Element<Message> {
-    //     match self {
-    //         Screen::Simple => SimpleScreen.view(),
-    //         Screen::Advanced => text!("test").into(),
-    //         Screen::Config => text!("test").into(),
-    //     }
-    // }
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ChangeScreen(Screen),
+    IOMessage(IOMessage),
 }
 
 impl Quickstitch {
     pub fn view(&self) -> Element<Message> {
-        let section_button = |screen: Screen, current_screen: &Screen| {
-            button(text(screen.get_label()))
-                .style(if screen == *current_screen {
-                    button::primary
-                } else {
-                    button::text
-                })
-                .on_press(Message::ChangeScreen(screen))
-                .padding(8)
-        };
-
+        // Sizing chart:
+        // H1 - 32
+        // H2 - 24
+        // H3 - 20
+        // Text 16
         column![
-            row![
-                section_button(Screen::Simple, &self.current_screen),
-                section_button(Screen::Advanced, &self.current_screen),
-                section_button(Screen::Config, &self.current_screen),
-            ]
-            .spacing(10),
-            match self.current_screen {
-                Screen::Simple => text!("test"),
-                Screen::Advanced => text!("test"),
-                Screen::Config => text!("test"),
-            }
+            // Input/Output directories
+            row![folder_icon().size(32), text("I/O").size(32)].spacing(10),
+            self.io_section.view().map(Message::IOMessage),
+            horizontal_rule(3),
+            // Image limits
+            row![image_icon().size(32), text("Size Limits").size(32)].spacing(10),
+            horizontal_rule(3),
+            // Algorithm settings
+            row![settings_icon().size(32), text("Settings").size(32)].spacing(10),
+            horizontal_rule(3),
+            // Action buttons
+            // Preview/Export
         ]
+        .spacing(20)
         .padding(20)
         .into()
     }
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::ChangeScreen(screen) => self.current_screen = screen,
+            Message::IOMessage(io_message) => {
+                self.io_section.update(io_message);
+            }
         }
     }
     pub fn get_theme(&self) -> Theme {

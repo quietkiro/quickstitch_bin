@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-iced = "0.13.1"
+iced = {git = "https://github.com/iced-rs/iced.git", rev = "a39e76a"}
 quickstitch = { git = "https://github.com/quietkiro/quickstitch.git"}
+rfd = "0.15.4"
