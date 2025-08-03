@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use iced::{
     Element,
@@ -8,6 +8,8 @@ use iced::{
 use image_file::{ImageFile, ImageFileMessage};
 use rfd::FileDialog;
 
+use super::icons::{add_file_icon, add_folder_icon, folder_icon, image_icon};
+
 mod image_file;
 
 #[derive(Default)]
@@ -16,13 +18,32 @@ pub struct IOSection {
     input_directory: Option<PathBuf>,
     input_files: Vec<ImageFile>,
     output_directory: Option<PathBuf>,
+    output_format: Rc<RefCell<ImageFormat>>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Debug)]
 pub enum InputType {
     #[default]
     Directory,
     Images,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum ImageFormat {
+    #[default]
+    JPEG,
+    WebP,
+    PNG,
+}
+
+impl ImageFormat {
+    pub fn limit(&self) -> u32 {
+        match self {
+            ImageFormat::JPEG => 65_535,
+            ImageFormat::WebP => 16_383,
+            ImageFormat::PNG => u32::MAX,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -31,27 +52,42 @@ pub enum IOMessage {
     SetInputType(InputType),
     SetInputDirectory,
     SetOutputDirectory,
+    AddImage,
+    SetOutputFormat(ImageFormat),
 }
 
 impl IOSection {
+    pub fn get_output_format(&self) -> Rc<RefCell<ImageFormat>> {
+        self.output_format.clone()
+    }
     pub fn view(&self) -> Element<IOMessage> {
-        let select_dir_field = |set_dir_message| -> Element<IOMessage> {
-            match &self.input_directory {
+        let select_dir_field = |set_dir_message, dir: &Option<PathBuf>| -> Element<IOMessage> {
+            match &dir {
                 Some(dir) => column![
-                    scrollable(
-                        text(dir.display().to_string()).size(20) // .wrapping(text::Wrapping::None)
+                    scrollable(text(dir.display().to_string()).size(20))
+                        .horizontal()
+                        .spacing(5),
+                    button(
+                        row![
+                            add_folder_icon().size(20),
+                            text("Change Directory").size(20)
+                        ]
+                        .spacing(10)
                     )
-                    .horizontal()
-                    .spacing(5),
-                    button(text("Change Directory").size(20))
-                        .on_press(set_dir_message)
-                        .style(button::danger)
+                    .on_press(set_dir_message)
+                    .style(button::danger)
                 ]
                 .spacing(10)
                 .into(),
-                None => button(text("Select Directory").size(20))
-                    .on_press(set_dir_message)
-                    .into(),
+                None => button(
+                    row![
+                        add_folder_icon().size(20),
+                        text("Select Directory").size(20)
+                    ]
+                    .spacing(10),
+                )
+                .on_press(set_dir_message)
+                .into(),
             }
         };
 
@@ -64,7 +100,11 @@ impl IOSection {
                         .style(text::secondary)
                 ]
                 .width(FillPortion(1)),
-                container(select_dir_field(IOMessage::SetInputDirectory)).width(FillPortion(1)),
+                container(select_dir_field(
+                    IOMessage::SetInputDirectory,
+                    &self.input_directory
+                ))
+                .width(FillPortion(1)),
             ]
             .spacing(20)
             .into(),
@@ -76,14 +116,41 @@ impl IOSection {
                         .style(text::secondary)
                 ]
                 .width(FillPortion(1)),
-                column(self.input_files.iter().enumerate().map(|(i, file)| {
-                    file.view().map(move |a| IOMessage::ImageFileMessage(i, a))
-                }))
-                .width(FillPortion(1))
+                if !self.input_files.is_empty() {
+                    column![
+                        column(self.input_files.iter().enumerate().map(|(i, file)| {
+                            file.view().map(move |a| IOMessage::ImageFileMessage(i, a))
+                        }))
+                        .spacing(10),
+                        button(
+                            row![add_file_icon().size(20), text("Add Image").size(20)].spacing(10)
+                        )
+                        .on_press(IOMessage::AddImage)
+                    ]
+                    .spacing(10)
+                    .width(FillPortion(1))
+                } else {
+                    column![
+                        button(row![add_file_icon().size(20), text("Add Image").size(20)])
+                            .on_press(IOMessage::AddImage)
+                    ]
+                    .width(FillPortion(1))
+                }
             ]
             .spacing(20)
             .into(),
         };
+
+        let image_format_button = |name, filetype, curr_filetype: Rc<RefCell<ImageFormat>>| {
+            button(text(name).size(20))
+                .style(if filetype == *curr_filetype.borrow() {
+                    button::primary
+                } else {
+                    button::text
+                })
+                .on_press(IOMessage::SetOutputFormat(filetype))
+        };
+
         column![
             row![
                 column![
@@ -94,13 +161,13 @@ impl IOSection {
                 ]
                 .width(FillPortion(1)),
                 row![
-                    button(text("Directory").size(20))
+                    button(row![folder_icon().size(20), text("Directory").size(20)].spacing(10))
                         .on_press(IOMessage::SetInputType(InputType::Directory))
                         .style(match self.input_type {
                             InputType::Directory => button::primary,
                             InputType::Images => button::text,
                         }),
-                    button(text("Images").size(20))
+                    button(row![image_icon().size(20), text("Images").size(20)].spacing(10))
                         .on_press(IOMessage::SetInputType(InputType::Images))
                         .style(match self.input_type {
                             InputType::Directory => button::text,
@@ -120,9 +187,30 @@ impl IOSection {
                         .style(text::secondary)
                 ]
                 .width(FillPortion(1)),
-                container(select_dir_field(IOMessage::SetOutputDirectory)).width(FillPortion(1))
+                container(select_dir_field(
+                    IOMessage::SetOutputDirectory,
+                    &self.output_directory
+                ))
+                .width(FillPortion(1))
             ]
             .spacing(20),
+            row![
+                column![
+                    text("Output Format").size(20),
+                    text("File format to use when exporting stitched images")
+                        .size(16)
+                        .style(text::secondary)
+                ]
+                .width(FillPortion(1)),
+                row![
+                    image_format_button("JPEG", ImageFormat::JPEG, self.output_format.clone()),
+                    image_format_button("WebP", ImageFormat::WebP, self.output_format.clone()),
+                    image_format_button("PNG", ImageFormat::PNG, self.output_format.clone())
+                ]
+                .spacing(10)
+                .width(FillPortion(1))
+            ]
+            .spacing(20)
         ]
         .spacing(20)
         .into()
@@ -145,6 +233,17 @@ impl IOSection {
                 }
             }
             IOMessage::SetInputType(input_type) => self.input_type = input_type,
+            IOMessage::AddImage => {
+                if let Some(file) = FileDialog::new()
+                    .add_filter("Image (webp, png, jpeg)", &["webp", "png", "jpeg", "jpg"])
+                    .pick_file()
+                {
+                    self.input_files.push(ImageFile::with_path(file));
+                }
+            }
+            IOMessage::SetOutputFormat(output_format) => {
+                *self.output_format.borrow_mut() = output_format
+            }
         }
     }
 }
