@@ -37,9 +37,24 @@ pub enum LimitSectionMessage {
 impl LimitSection {
     pub fn new(output_format: Rc<RefCell<ImageFormat>>) -> Self {
         Self {
-            fixed_width: PixelField::new("Image Width", "e.g. 800", output_format.clone()),
-            max_height: PixelField::new("Max Output Height", "e.g. 15000", output_format.clone()),
-            min_height: PixelField::new("Min Output Height", "e.g. 10000", output_format.clone()),
+            fixed_width: PixelField::new(
+                "Image Width",
+                "e.g. 800",
+                Some(800),
+                output_format.clone(),
+            ),
+            max_height: PixelField::new(
+                "Max Output Height",
+                "e.g. 15000",
+                Some(15000),
+                output_format.clone(),
+            ),
+            min_height: PixelField::new(
+                "Min Output Height",
+                "e.g. 10000",
+                Some(10000),
+                output_format.clone(),
+            ),
             ..Default::default()
         }
     }

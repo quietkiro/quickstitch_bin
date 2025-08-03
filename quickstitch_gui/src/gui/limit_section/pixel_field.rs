@@ -23,10 +23,21 @@ pub enum PixelFieldMessage {
 }
 
 impl PixelField {
-    pub fn new<S: AsRef<str>>(title: S, hint: S, output_format: Rc<RefCell<ImageFormat>>) -> Self {
+    pub fn new<S: AsRef<str>>(
+        title: S,
+        hint: S,
+        prefill: Option<u32>,
+        output_format: Rc<RefCell<ImageFormat>>,
+    ) -> Self {
         Self {
             title: title.as_ref().to_string(),
             hint: hint.as_ref().to_string(),
+            number: prefill,
+            field: if let Some(num) = prefill {
+                num.to_string()
+            } else {
+                String::new()
+            },
             output_format,
             ..Default::default()
         }

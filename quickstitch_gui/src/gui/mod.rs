@@ -52,11 +52,14 @@ impl Quickstitch {
                 self.limit_section.view().map(Message::LimitSectionMessage),
                 horizontal_rule(3),
                 // Algorithm settings
-                row![settings_icon().size(32), text("Settings").size(32)].spacing(10),
+                row![
+                    settings_icon().size(32),
+                    text("Settings (Advanced)").size(32)
+                ]
+                .spacing(10),
                 horizontal_rule(3),
                 // Action buttons
                 row![sliders_icon().size(32), text("Actions").size(32)].spacing(10),
-                horizontal_rule(3),
             ]
             .spacing(20)
             .padding(20),
