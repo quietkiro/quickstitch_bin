@@ -71,7 +71,7 @@ impl ImageFormat {
 }
 
 #[derive(Debug, Clone)]
-pub enum IOMessage {
+pub enum IOSectionMessage {
     ImageFileMessage(usize, ImageFileMessage),
     SetInputType(InputType),
     SetInputDirectory,
@@ -86,36 +86,37 @@ impl IOSection {
     pub fn get_output_format(&self) -> Rc<RefCell<ImageFormat>> {
         self.output_format.clone()
     }
-    pub fn view(&self) -> Element<IOMessage> {
-        let select_dir_field = |set_dir_message, dir: &Option<PathBuf>| -> Element<IOMessage> {
-            match &dir {
-                Some(dir) => column![
-                    scrollable(text(dir.display().to_string()).size(20))
-                        .horizontal()
-                        .spacing(5),
-                    button(
+    pub fn view(&self) -> Element<IOSectionMessage> {
+        let select_dir_field =
+            |set_dir_message, dir: &Option<PathBuf>| -> Element<IOSectionMessage> {
+                match &dir {
+                    Some(dir) => column![
+                        scrollable(text(dir.display().to_string()).size(20))
+                            .horizontal()
+                            .spacing(5),
+                        button(
+                            row![
+                                add_folder_icon().size(20),
+                                text("Change Directory").size(20)
+                            ]
+                            .spacing(10)
+                        )
+                        .on_press(set_dir_message)
+                        .style(button::danger)
+                    ]
+                    .spacing(10)
+                    .into(),
+                    None => button(
                         row![
                             add_folder_icon().size(20),
-                            text("Change Directory").size(20)
+                            text("Select Directory").size(20)
                         ]
-                        .spacing(10)
+                        .spacing(10),
                     )
                     .on_press(set_dir_message)
-                    .style(button::danger)
-                ]
-                .spacing(10)
-                .into(),
-                None => button(
-                    row![
-                        add_folder_icon().size(20),
-                        text("Select Directory").size(20)
-                    ]
-                    .spacing(10),
-                )
-                .on_press(set_dir_message)
-                .into(),
-            }
-        };
+                    .into(),
+                }
+            };
 
         let images: Element<_> = match self.input_type {
             InputType::Directory => column![
@@ -128,7 +129,7 @@ impl IOSection {
                     ]
                     .width(FillPortion(1)),
                     container(select_dir_field(
-                        IOMessage::SetInputDirectory,
+                        IOSectionMessage::SetInputDirectory,
                         &self.input_directory
                     ))
                     .width(FillPortion(1)),
@@ -147,14 +148,14 @@ impl IOSection {
                             "Natural - [\"10\", \"11\", \"8\", \"9\"]",
                             SortMethod::Natural,
                             Some(self.sort_method),
-                            IOMessage::SetSortMethod
+                            IOSectionMessage::SetSortMethod
                         )
                         .size(20),
                         radio(
                             "Logical - [\"8\", \"9\", \"10\", \"11\"]",
                             SortMethod::Logical,
                             Some(self.sort_method),
-                            IOMessage::SetSortMethod
+                            IOSectionMessage::SetSortMethod
                         )
                         .size(20)
                     ]
@@ -176,20 +177,21 @@ impl IOSection {
                 if !self.input_files.is_empty() {
                     column![
                         column(self.input_files.iter().enumerate().map(|(i, file)| {
-                            file.view().map(move |a| IOMessage::ImageFileMessage(i, a))
+                            file.view()
+                                .map(move |a| IOSectionMessage::ImageFileMessage(i, a))
                         }))
                         .spacing(10),
                         button(
                             row![add_file_icon().size(20), text("Add Image").size(20)].spacing(10)
                         )
-                        .on_press(IOMessage::AddImage)
+                        .on_press(IOSectionMessage::AddImage)
                     ]
                     .spacing(10)
                     .width(FillPortion(1))
                 } else {
                     column![
                         button(row![add_file_icon().size(20), text("Add Image").size(20)])
-                            .on_press(IOMessage::AddImage)
+                            .on_press(IOSectionMessage::AddImage)
                     ]
                     .width(FillPortion(1))
                 }
@@ -205,7 +207,7 @@ impl IOSection {
                 } else {
                     button::text
                 })
-                .on_press(IOMessage::SetOutputFormat(filetype))
+                .on_press(IOSectionMessage::SetOutputFormat(filetype))
         };
 
         let mut output_format = column![
@@ -241,7 +243,7 @@ impl IOSection {
                     .width(FillPortion(1)),
                     text_input("e.g. 100", &self.quality_field)
                         .width(FillPortion(1))
-                        .on_input(IOMessage::SetQualityField),
+                        .on_input(IOSectionMessage::SetQualityField),
                 ]
                 .spacing(20),
             );
@@ -260,13 +262,13 @@ impl IOSection {
                 .width(FillPortion(1)),
                 row![
                     button(row![folder_icon().size(20), text("Directory").size(20)].spacing(10))
-                        .on_press(IOMessage::SetInputType(InputType::Directory))
+                        .on_press(IOSectionMessage::SetInputType(InputType::Directory))
                         .style(match self.input_type {
                             InputType::Directory => button::primary,
                             InputType::Images => button::text,
                         }),
                     button(row![image_icon().size(20), text("Images").size(20)].spacing(10))
-                        .on_press(IOMessage::SetInputType(InputType::Images))
+                        .on_press(IOSectionMessage::SetInputType(InputType::Images))
                         .style(match self.input_type {
                             InputType::Directory => button::text,
                             InputType::Images => button::primary,
@@ -286,7 +288,7 @@ impl IOSection {
                 ]
                 .width(FillPortion(1)),
                 container(select_dir_field(
-                    IOMessage::SetOutputDirectory,
+                    IOSectionMessage::SetOutputDirectory,
                     &self.output_directory
                 ))
                 .width(FillPortion(1))
@@ -297,25 +299,25 @@ impl IOSection {
         .spacing(20)
         .into()
     }
-    pub fn update(&mut self, message: IOMessage) {
+    pub fn update(&mut self, message: IOSectionMessage) {
         match message {
-            IOMessage::ImageFileMessage(i, message) => {
+            IOSectionMessage::ImageFileMessage(i, message) => {
                 match message {
                     ImageFileMessage::Delete => self.input_files.remove(i),
                 };
             }
-            IOMessage::SetInputDirectory => {
+            IOSectionMessage::SetInputDirectory => {
                 if let Some(dir) = FileDialog::new().pick_folder() {
                     self.input_directory = Some(dir);
                 }
             }
-            IOMessage::SetOutputDirectory => {
+            IOSectionMessage::SetOutputDirectory => {
                 if let Some(dir) = FileDialog::new().pick_folder() {
                     self.output_directory = Some(dir)
                 }
             }
-            IOMessage::SetInputType(input_type) => self.input_type = input_type,
-            IOMessage::AddImage => {
+            IOSectionMessage::SetInputType(input_type) => self.input_type = input_type,
+            IOSectionMessage::AddImage => {
                 if let Some(file) = FileDialog::new()
                     .add_filter("Image (webp, png, jpeg)", &["webp", "png", "jpeg", "jpg"])
                     .pick_file()
@@ -323,11 +325,11 @@ impl IOSection {
                     self.input_files.push(ImageFile::with_path(file));
                 }
             }
-            IOMessage::SetOutputFormat(output_format) => {
+            IOSectionMessage::SetOutputFormat(output_format) => {
                 *self.output_format.borrow_mut() = output_format
             }
-            IOMessage::SetSortMethod(sort_method) => self.sort_method = sort_method,
-            IOMessage::SetQualityField(quality_field) => {
+            IOSectionMessage::SetSortMethod(sort_method) => self.sort_method = sort_method,
+            IOSectionMessage::SetQualityField(quality_field) => {
                 if let Ok(num) = quality_field.parse::<u8>()
                     && num <= 100
                     && num > 0
