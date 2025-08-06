@@ -25,4 +25,3 @@ add_icon!(add_file_icon, '\u{E96F}');
 add_icon!(image_icon, '\u{E978}');
 add_icon!(settings_icon, '\u{E9DB}');
 add_icon!(delete_icon, '\u{E9F6}');
-add_icon!(sliders_icon, '\u{E9C4}');

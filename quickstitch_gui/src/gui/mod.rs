@@ -1,10 +1,10 @@
 use iced::{
-    Alignment, Element,
+    Element,
     Length::FillPortion,
     Theme,
-    widget::{button, column, horizontal_rule, row, scrollable, text},
+    widget::{Space, button, column, horizontal_rule, row, scrollable, text},
 };
-use icons::{folder_icon, image_icon, settings_icon, sliders_icon};
+use icons::{folder_icon, image_icon, settings_icon};
 use io_section::{IOSection, IOSectionMessage};
 use limit_section::{LimitSection, LimitSectionMessage};
 use quickstitch::Splitpoint;
@@ -47,7 +47,6 @@ pub enum Message {
     LimitSection(LimitSectionMessage),
     SettingSection(SettingSectionMessage),
     Stitch,
-    Edit,
 }
 
 impl Quickstitch {
@@ -75,18 +74,16 @@ impl Quickstitch {
                 .spacing(10),
                 self.setting_section.view().map(Message::SettingSection),
                 horizontal_rule(3),
-                // Action buttons
-                row![sliders_icon().size(32), text("Actions").size(32)].spacing(10),
-                row![
-                    button(text("Stitch").align_x(Alignment::Center).size(20))
-                        .on_press(Message::Stitch)
-                        .width(FillPortion(1)),
-                    button(text("Edit").align_x(Alignment::Center).size(20))
-                        .width(FillPortion(1))
-                        .on_press(Message::Edit),
+                column![
+                    button(row![
+                        Space::with_width(FillPortion(1)),
+                        text("Stitch").size(32),
+                        Space::with_width(FillPortion(1))
+                    ])
+                    .on_press(Message::Stitch)
+                    .width(FillPortion(1)),
+                    text(&self.stitch_error).size(16).style(text::danger),
                 ]
-                .spacing(20),
-                text(&self.stitch_error).size(16).style(text::danger),
             ]
             .spacing(20)
             .padding(20),
@@ -129,7 +126,6 @@ impl Quickstitch {
                     Err(e) => self.stitch_error = e.to_string(),
                 }
             }
-            Message::Edit => {}
         }
     }
     pub fn get_theme(&self) -> Theme {

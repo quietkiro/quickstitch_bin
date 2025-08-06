@@ -94,9 +94,13 @@ pub fn stitcher(
         Some(min) => min,
         None => return Err(StitcherError::EmptyMinOutputHeight),
     };
-    let quality = match quality {
-        Some(quality) => quality,
-        None => return Err(StitcherError::EmptyQuality),
+    let quality = match output_format {
+        ImageFormat::JPEG => match quality {
+            Some(quality) => quality,
+            None => return Err(StitcherError::EmptyQuality),
+        },
+        ImageFormat::WebP => 0,
+        ImageFormat::PNG => 0,
     };
     let scan_interval = match scan_interval {
         Some(interval) => interval,
@@ -107,7 +111,7 @@ pub fn stitcher(
         None => return Err(StitcherError::EmptySensitivity),
     };
     let output_filetype = match output_format {
-        ImageFormat::JPEG => ImageOutputFormat::Jpeg(quality),
+        ImageFormat::JPEG => ImageOutputFormat::Jpg(quality),
         ImageFormat::WebP => ImageOutputFormat::Webp,
         ImageFormat::PNG => ImageOutputFormat::Png,
     };
