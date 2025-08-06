@@ -3,7 +3,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use iced::{
     Element,
     Length::FillPortion,
-    widget::{button, column, container, radio, row, scrollable, text, text_input},
+    widget::{button, column, container, radio, row, scrollable, text, text_input, toggler},
 };
 use image_file::{ImageFile, ImageFileMessage};
 use rfd::FileDialog;
@@ -15,6 +15,7 @@ mod image_file;
 pub struct IOSection {
     input_type: InputType,
     input_directory: Option<PathBuf>,
+    ignore_unloadable: bool,
     sort_method: SortMethod,
     input_files: Vec<ImageFile>,
     output_directory: Option<PathBuf>,
@@ -28,6 +29,7 @@ impl Default for IOSection {
         Self {
             input_type: InputType::default(),
             input_directory: None,
+            ignore_unloadable: true,
             sort_method: SortMethod::default(),
             input_files: vec![],
             output_directory: None,
@@ -38,7 +40,7 @@ impl Default for IOSection {
     }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Copy)]
 pub enum InputType {
     #[default]
     Directory,
@@ -61,11 +63,11 @@ pub enum ImageFormat {
 }
 
 impl ImageFormat {
-    pub fn limit(&self) -> u32 {
+    pub fn limit(&self) -> usize {
         match self {
             ImageFormat::JPEG => 65_535,
             ImageFormat::WebP => 16_383,
-            ImageFormat::PNG => u32::MAX,
+            ImageFormat::PNG => u32::MAX as usize,
         }
     }
 }
@@ -75,6 +77,7 @@ pub enum IOSectionMessage {
     ImageFileMessage(usize, ImageFileMessage),
     SetInputType(InputType),
     SetInputDirectory,
+    SetIgnoreUnloadable(bool),
     SetOutputDirectory,
     AddImage,
     SetOutputFormat(ImageFormat),
@@ -83,7 +86,28 @@ pub enum IOSectionMessage {
 }
 
 impl IOSection {
-    pub fn get_output_format(&self) -> Rc<RefCell<ImageFormat>> {
+    pub fn input_type(&self) -> InputType {
+        self.input_type
+    }
+    pub fn input_directory(&self) -> Option<PathBuf> {
+        self.input_directory.clone()
+    }
+    pub fn sort_method(&self) -> SortMethod {
+        self.sort_method
+    }
+    pub fn ignore_unlodable(&self) -> bool {
+        self.ignore_unloadable
+    }
+    pub fn input_files(&self) -> Vec<PathBuf> {
+        self.input_files.iter().map(|file| file.path()).collect()
+    }
+    pub fn output_directory(&self) -> Option<PathBuf> {
+        self.output_directory.clone()
+    }
+    pub fn compression_quality(&self) -> Option<u8> {
+        self.quality
+    }
+    pub fn output_format(&self) -> Rc<RefCell<ImageFormat>> {
         self.output_format.clone()
     }
     pub fn view(&self) -> Element<IOSectionMessage> {
@@ -281,6 +305,20 @@ impl IOSection {
             images,
             row![
                 column![
+                    text("Ignore Unloadable").size(20),
+                    text("Ignore images that fail to be loaded")
+                        .size(16)
+                        .style(text::secondary)
+                ]
+                .width(FillPortion(1)),
+                toggler(self.ignore_unloadable)
+                    .on_toggle(IOSectionMessage::SetIgnoreUnloadable)
+                    .size(20)
+                    .width(FillPortion(1))
+            ]
+            .spacing(20),
+            row![
+                column![
                     text("Output Directory").size(20),
                     text("Folder to which the stitched image(s) will be saved")
                         .size(16)
@@ -340,6 +378,9 @@ impl IOSection {
                     self.quality_field = String::new();
                     self.quality = None;
                 }
+            }
+            IOSectionMessage::SetIgnoreUnloadable(ignore_unloadable) => {
+                self.ignore_unloadable = ignore_unloadable;
             }
         }
     }

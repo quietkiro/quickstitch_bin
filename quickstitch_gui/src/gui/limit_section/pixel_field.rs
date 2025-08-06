@@ -13,7 +13,7 @@ pub struct PixelField {
     title: String,
     field: String,
     hint: String,
-    number: Option<u32>,
+    number: Option<usize>,
     output_format: Rc<RefCell<ImageFormat>>,
 }
 
@@ -23,10 +23,13 @@ pub enum PixelFieldMessage {
 }
 
 impl PixelField {
+    pub fn number(&self) -> Option<usize> {
+        self.number
+    }
     pub fn new<S: AsRef<str>>(
         title: S,
         hint: S,
-        prefill: Option<u32>,
+        prefill: Option<usize>,
         output_format: Rc<RefCell<ImageFormat>>,
     ) -> Self {
         Self {
@@ -63,7 +66,7 @@ impl PixelField {
     pub fn update(&mut self, message: PixelFieldMessage) {
         match message {
             PixelFieldMessage::UpdateField(field) => {
-                if let Ok(num) = field.parse::<u32>()
+                if let Ok(num) = field.parse::<usize>()
                     && num < self.output_format.borrow().limit()
                 {
                     self.field = num.to_string();

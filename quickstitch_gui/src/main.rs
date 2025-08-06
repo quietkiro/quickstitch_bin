@@ -6,6 +6,7 @@ use iced::{
 
 pub mod _gui;
 mod gui;
+mod stitcher;
 
 static ICON: &[u8] = include_bytes!("../assets/quickstitch.ico");
 

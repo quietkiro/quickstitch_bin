@@ -35,10 +35,22 @@ pub enum LimitSectionMessage {
 }
 
 impl LimitSection {
+    pub fn width_type(&self) -> WidthType {
+        self.width_type
+    }
+    pub fn fixed_width(&self) -> Option<u32> {
+        self.fixed_width.number().map(|num| num as u32)
+    }
+    pub fn max_height(&self) -> Option<usize> {
+        self.max_height.number()
+    }
+    pub fn min_height(&self) -> Option<usize> {
+        self.min_height.number()
+    }
     pub fn new(output_format: Rc<RefCell<ImageFormat>>) -> Self {
         Self {
             fixed_width: PixelField::new(
-                "Image Width",
+                "Output Image Width",
                 "e.g. 800",
                 Some(800),
                 output_format.clone(),

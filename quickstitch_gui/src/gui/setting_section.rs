@@ -7,7 +7,7 @@ use iced::{
 pub struct SettingSection {
     debug: bool,
     scan_interval_field: String,
-    scan_interval: Option<u32>,
+    scan_interval: Option<usize>,
     sensitivity_field: String,
     sensitivity: Option<u8>,
 }
@@ -32,6 +32,15 @@ pub enum SettingSectionMessage {
 }
 
 impl SettingSection {
+    pub fn scan_interval(&self) -> Option<usize> {
+        self.scan_interval
+    }
+    pub fn sensitivity(&self) -> Option<u8> {
+        self.sensitivity
+    }
+    pub fn debug(&self) -> bool {
+        self.debug
+    }
     pub fn view(&self) -> Element<SettingSectionMessage> {
         column![
             row![
@@ -79,7 +88,7 @@ impl SettingSection {
         match message {
             SettingSectionMessage::SetDebugMode(mode) => self.debug = mode,
             SettingSectionMessage::SetScanInterval(field) => {
-                if let Ok(num) = field.parse::<u32>() {
+                if let Ok(num) = field.parse::<usize>() {
                     self.scan_interval = Some(num);
                     self.scan_interval_field = num.to_string();
                 } else if field.is_empty() {

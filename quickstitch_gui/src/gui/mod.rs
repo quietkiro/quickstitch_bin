@@ -7,29 +7,36 @@ use iced::{
 use icons::{folder_icon, image_icon, settings_icon, sliders_icon};
 use io_section::{IOSection, IOSectionMessage};
 use limit_section::{LimitSection, LimitSectionMessage};
+use quickstitch::Splitpoint;
 use setting_section::{SettingSection, SettingSectionMessage};
 
+use crate::stitcher::stitcher;
+
 pub mod icons;
-mod io_section;
-mod limit_section;
-mod setting_section;
+pub mod io_section;
+pub mod limit_section;
+pub mod setting_section;
 
 pub struct Quickstitch {
     io_section: IOSection,
     limit_section: LimitSection,
     setting_section: SettingSection,
     theme: Theme,
+    splitpoints: Option<Vec<Splitpoint>>,
+    stitch_error: String,
 }
 
 impl Default for Quickstitch {
     fn default() -> Self {
         let io_section = IOSection::default();
-        let limit_section = LimitSection::new(io_section.get_output_format());
+        let limit_section = LimitSection::new(io_section.output_format());
         Self {
             limit_section,
             io_section,
             setting_section: SettingSection::default(),
             theme: Theme::Light,
+            splitpoints: None,
+            stitch_error: String::new(),
         }
     }
 }
@@ -39,6 +46,8 @@ pub enum Message {
     IOSection(IOSectionMessage),
     LimitSection(LimitSectionMessage),
     SettingSection(SettingSectionMessage),
+    Stitch,
+    Edit,
 }
 
 impl Quickstitch {
@@ -70,10 +79,14 @@ impl Quickstitch {
                 row![sliders_icon().size(32), text("Actions").size(32)].spacing(10),
                 row![
                     button(text("Stitch").align_x(Alignment::Center).size(20))
+                        .on_press(Message::Stitch)
                         .width(FillPortion(1)),
-                    button(text("Edit").align_x(Alignment::Center).size(20)).width(FillPortion(1)),
+                    button(text("Edit").align_x(Alignment::Center).size(20))
+                        .width(FillPortion(1))
+                        .on_press(Message::Edit),
                 ]
                 .spacing(20),
+                text(&self.stitch_error).size(16).style(text::danger),
             ]
             .spacing(20)
             .padding(20),
@@ -91,6 +104,32 @@ impl Quickstitch {
             Message::SettingSection(setting_section_message) => {
                 self.setting_section.update(setting_section_message);
             }
+            Message::Stitch => {
+                match stitcher(
+                    self.io_section.input_type(),
+                    self.io_section.input_directory(),
+                    self.io_section.sort_method(),
+                    self.io_section.input_files(),
+                    self.io_section.ignore_unlodable(),
+                    self.io_section.output_directory(),
+                    self.io_section.output_format().borrow().clone(),
+                    self.io_section.compression_quality(),
+                    self.limit_section.width_type(),
+                    self.limit_section.fixed_width(),
+                    self.limit_section.max_height(),
+                    self.limit_section.min_height(),
+                    self.setting_section.scan_interval(),
+                    self.setting_section.sensitivity(),
+                    self.setting_section.debug(),
+                ) {
+                    Ok(splitpoints) => {
+                        self.splitpoints = Some(splitpoints);
+                        self.stitch_error = String::new();
+                    }
+                    Err(e) => self.stitch_error = e.to_string(),
+                }
+            }
+            Message::Edit => {}
         }
     }
     pub fn get_theme(&self) -> Theme {

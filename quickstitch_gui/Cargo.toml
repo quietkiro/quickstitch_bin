@@ -6,5 +6,6 @@ edition = "2024"
 [dependencies]
 iced = {git = "https://github.com/iced-rs/iced.git", rev = "a39e76a"}
 image = { version = "0.25.6", features = ["ico"] }
-quickstitch = { git = "https://github.com/quietkiro/quickstitch.git"}
+quickstitch = { git = "https://github.com/quietkiro/quickstitch.git", rev = "a41dda5"}
 rfd = "0.15.4"
+thiserror = "2.0.12"

@@ -17,6 +17,9 @@ pub enum ImageFileMessage {
 }
 
 impl ImageFile {
+    pub fn path(&self) -> PathBuf {
+        self.path.clone()
+    }
     pub fn with_path(path: PathBuf) -> Self {
         Self { path }
     }
