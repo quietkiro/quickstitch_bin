@@ -2,6 +2,8 @@
 
 This repository features a sample CLI and GUI applicaiton built around [Quickstitch](https://github.com/quietkiro/quickstitch).
 
+If you'd like to give either application a spin, there's a sample chapter drawn by [Leafsky](https://www.instagram.com/_.melo.vee._/) located [here](https://github.com/quietkiro/quickstitch_bin/blob/main/test-sample.zip), distributed with her permission.
+
 ## Getting Started with the GUI
 
 If you have a Linux or Windows system, do check out the [releases page](https://github.com/quietkiro/quickstitch_bin/releases) and download the executable that suits your system.
@@ -22,4 +24,3 @@ After which, performing the following command should be enough for you to get st
 ```
 quickstitch_cli --help
 ```
-
