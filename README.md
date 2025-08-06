@@ -2,7 +2,7 @@
 
 This repository features a sample CLI and GUI applicaiton built around [Quickstitch](https://github.com/quietkiro/quickstitch).
 
-If you'd like to give either application a spin, there's a sample chapter drawn by [Leafsky](https://www.instagram.com/_.melo.vee._/) located [here](https://github.com/quietkiro/quickstitch_bin/blob/main/test-sample.zip), distributed with her permission.
+If you'd like to give either application a spin, there's a sample chapter drawn by [Leafsky](https://www.instagram.com/_.melo.vee._/) located [here as test-sample.zip in the repository](https://github.com/quietkiro/quickstitch_bin/blob/main/test-sample.zip), distributed with her permission.
 
 ## Getting Started with the GUI
 
